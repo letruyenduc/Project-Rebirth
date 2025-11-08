@@ -185,3 +185,24 @@ function love.draw()
     love.gameFrame()
 end
 
+function love.keypressed(key)
+    if key == "space" and game.state.menu then
+        game.state.menu = false
+        game.state.running = true
+    elseif key == "p" and game.state.running then
+        game.state.paused = not game.state.paused
+    end
+end
+
+function love.update(dt)
+    if game.state.menu then
+        return
+    elseif game.state.paused then
+        return
+    else
+        love.playerMovement()
+        love.fullscreen()
+        love.quit()
+    end
+end
+
