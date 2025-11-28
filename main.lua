@@ -104,13 +104,15 @@ function love.load()
 
     function love.doDamage(amount)
         if love.keyboard.isDown("f") then
-            hp.quantity = hp.quantity - amount
+            if hp.quantity > 0 + amount then
+                hp.quantity = hp.quantity - amount
+            end
         end
     end
     function love.eSpell(mana)
 
         if love.keyboard.isDown("e") then
-            if mp.quantity > 0 then
+            if mp.quantity > 0 + mana then
                 mp.quantity = mp.quantity - mana
                 cd = 60
             end
@@ -167,6 +169,7 @@ function love.update(dt)
                 moveTimer = MOVE_DELAY
             end
         end
+        
     end
     love.playerMovement()
     love.fullscreen()
