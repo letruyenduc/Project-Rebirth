@@ -30,28 +30,24 @@ local mp = {
 local ennemies = {
 
 }
+
+
 function love.load()
     
     MOVE_DELAY = 0.1
     MANA_DELAY = 0.5
+    DAMAGE_DELAY = 10
+    damageTimer = 0
     moveTimer = 0
-    manaTimer = 0
+    E_manaCooldown = 1.0
+    E_manaTimer = 0
+
+
+
+
     love.mouse.setVisible(false)
     love.window.setTitle("Project : Rebirth")
     -- FONCTIONS --
-
-    function love.fullscreen()
-        if love.keyboard.isDown("f") then
-            love.window.fullscreen = true
-        end
-    end
-
-    function love.quit()
-        if love.keyboard.isDown("escape") then
-            love.event.quit()
-        end
-    end
-
     function love.drawBackground()
         love.graphics.setLineWidth(2)
         for i = 2, MAP_WIDTH * TILE_SIZE, TILE_SIZE do
@@ -101,28 +97,6 @@ function love.load()
         love.graphics.setLineWidth(10)
         love.graphics.rectangle("line",0, 0, TILE_SIZE*21-2, 838, 10,10,TILE_SIZE)
     end
-
-    function love.doDamage(amount)
-        if love.keyboard.isDown("f") then
-            if hp.quantity > 0 + amount then
-                hp.quantity = hp.quantity - amount
-            end
-        end
-    end
-    function love.eSpell(mana)
-
-        if love.keyboard.isDown("e") then
-            if mp.quantity > 0 + mana then
-                mp.quantity = mp.quantity - mana
-                cd = 60
-            end
-        end
-        if cd ~= 0 then
-            cd = cd - 1
-            print(cd)
-        end
-    end
-
     function love.showFPS()
         local fpsFont = love.graphics.newFont(32)
         love.graphics.setFont(fpsFont)
@@ -132,6 +106,24 @@ function love.load()
     function love.drawPlayer()
         love.graphics.setColor(0.549, 0.063, 0.027)
         love.graphics.rectangle("fill", player.x+1, player.y+1, player.w, player.h, 4,4)
+    end
+    function love.createEnemy(x_tile, y_tile)
+        local new_enemy = {
+            x = x_tile * TILE_SIZE,
+            y = y_tile * TILE_SIZE,
+            w = TILE_SIZE,
+            h = TILE_SIZE,
+            
+            hp = 30,
+            damage = 10,
+            color = {1, 1, 0} -- Couleur jaune
+        }
+        return new_enemy
+    end
+
+    function love.drawEnemy(enemy)
+        love.graphics.setColor(enemy.color)
+        love.graphics.rectangle("fill", enemy.x + 2, enemy.y + 2, enemy.w - 4, enemy.h - 4, 4, 4)
     end
 end
 function love.update(dt)
@@ -171,8 +163,63 @@ function love.update(dt)
         end
         
     end
+    function love.die()
+        if hp.quantity < 0 then
+            love.graphics.clear(0, 0, 0, 0)
+        end
+    end
+    -- FONCTIONNEL
+    function love.doDamage(amount)
+        damageTimer = damageTimer - dt
+        if damageTimer <= 0 then
+            local isPressed = false
+            if hp.quantity > 0 then
+                hp.quantity = hp.quantity - amount
+                damageTimer = 0.1
+                isPressed = true
+            end
+            if isPressed then
+                damageTimer = DAMAGE_DELAY
+            end
+        end
+    end
+
+    -- FONCTIONNEL
+    function love.eSpell(mana)
+        E_manaTimer = E_manaTimer - dt
+        if love.keyboard.isDown("e") and E_manaTimer <= 0 then
+            local isPressed = false
+            if mp.quantity > 0 + mana then
+                mp.quantity = mp.quantity - mana
+                E_manaTimer = 1.0
+                isPressed = true
+            end
+            if isPressed then
+                E_manaTimer = MANA_DELAY
+            end
+        end
+    end
+
+    function love.quit()
+        if love.keyboard.isDown("escape") then
+            love.event.quit()
+        end
+    end
+    -- AJOUT D'ENNEMIES ICI
+    table.insert( ennemies, love.createEnemy(1,1))
+    -- FIN D'AJOUT
+
+    -- LOGIQUE INTERACTION ENNEMIES
+    for i = #ennemies, 1, -1 do
+        local enemy = ennemies[i]
+        if player.x == enemy.x and player.y == enemy.y then
+            love.doDamage(10)
+        end
+        if enemy.hp <= 0 then
+            table.remove(ennemies, i)
+        end
+    end
     love.playerMovement()
-    love.fullscreen()
     love.quit()
 end
 
@@ -180,11 +227,13 @@ function love.draw()
     love.drawBackground()
     love.UI()
     love.userHP()
-    love.doDamage(10);
     love.userMP()
-    love.eSpell(10)
+    for _, enemy in ipairs(ennemies) do
+        love.drawEnemy(enemy)
+    end
     love.drawPlayer()
     love.showFPS()
     love.gameFrame()
+    love.die()
 end
 
