@@ -68,39 +68,82 @@ local ENNEMIES_DEFINITIONS = {
         color = {0.2, 0.8, 0.2}, -- Vert Vif
     }
 }
+local GAME_MAP_W_TILES = 15 -- Largeur de la zone de jeu (en dalles)
+local GAME_MAP_H_TILES = 10 -- Hauteur de la zone de jeu (en dalles)
+local TILE_TYPES = {
+    GROUND = 0,
+    WALL = 1,
+    SPAWN = 2,
+}
+local game_map = {} -- La table qui contiendra [y][x] = TILE_TYPE
+function generateMap()
+    for y = 1, GAME_MAP_H_TILES do
+        game_map[y] = {}
+        for x = 1, GAME_MAP_W_TILES do
+            game_map[y][x] = TILE_TYPES.GROUND
+        end
+    end
+    
+    local wall_chance = 0.15 
+    
+    for y = 2, GAME_MAP_H_TILES - 1 do
+        for x = 2, GAME_MAP_W_TILES - 1 do
+            if math.random() < wall_chance then
+                game_map[y][x] = TILE_TYPES.WALL
+            end
+        end
+    end
+    
+    local start_x = player.x / TILE_SIZE + 1
+    local start_y = player.y / TILE_SIZE + 1
+    game_map[start_y][start_x] = TILE_TYPES.GROUND
+end
+function isColliding(target_x, target_y)
+    -- 1. Convertir les coordonnées de pixel en coordonnées de grille (tile)
+    local tx = math.floor(target_x / TILE_SIZE) + 1
+    local ty = math.floor(target_y / TILE_SIZE) + 1
+    
+    -- 2. Vérification des limites de la carte
+    if tx < 1 or ty < 1 or tx > GAME_MAP_W_TILES or ty > GAME_MAP_H_TILES then
+        return true -- Traiter les bords extérieurs comme un mur
+    end
+
+    -- 3. Vérification du type de tuile
+    if game_map[ty] and game_map[ty][tx] == TILE_TYPES.WALL then
+        return true
+    end
+    
+    return false -- C'est du sol (GROUND)
+end
 function playerMovement(dt)
     moveTimer = moveTimer - dt
     if moveTimer <= 0 then
         local moved = false
-        if love.keyboard.isDown("z") then
-            if player.y > 0 then
-                player.y = player.y - TILE_SIZE
-                moved = true
-            end
-            
-        elseif love.keyboard.isDown("s") then
-            if player.y < TILE_SIZE*9 then
-                player.y = player.y + TILE_SIZE
-                moved = true
-            end
+        local next_x = player.x
+        local next_y = player.y
 
+        if love.keyboard.isDown("z") then
+            next_y = player.y - TILE_SIZE
+        elseif love.keyboard.isDown("s") then
+            next_y = player.y + TILE_SIZE
         elseif love.keyboard.isDown("d") then
-            if player.x < TILE_SIZE*14 then
-                player.x = player.x + TILE_SIZE
-                moved = true
-            end
-            
+            next_x = player.x + TILE_SIZE
         elseif love.keyboard.isDown("q") then
-            if player.x > 0 then
-                player.x = player.x - TILE_SIZE
-                moved = true
-            end
+            next_x = player.x - TILE_SIZE
         end
+        
+        -- NOUVEAU : Vérification de la Collision !
+        if not isColliding(next_x, next_y) then
+            -- Mettre à jour la position uniquement si la case est libre
+            player.x = next_x
+            player.y = next_y
+            moved = true
+        end
+
         if moved then
             moveTimer = MOVE_DELAY
         end
     end
-    
 end
 function createEnemy(x_tile, y_tile, enemy_type)
     local def = ENNEMIES_DEFINITIONS[enemy_type]
@@ -154,6 +197,7 @@ function moveEnemyTowardsPlayer(enemy, player)
     local move_x = 0
     local move_y = 0
 
+    
     if dx ~= 0 then
         move_x = (dx > 0 and TILE_SIZE) or (dx < 0 and -TILE_SIZE)
     end
@@ -161,10 +205,21 @@ function moveEnemyTowardsPlayer(enemy, player)
     if dy ~= 0 then
         move_y = (dy > 0 and TILE_SIZE) or (dy < 0 and -TILE_SIZE)
     end
+
+    local next_x = enemy.x
+    local next_y = enemy.y
+    
     if move_x ~= 0 then
-        enemy.x = enemy.x + move_x
+        next_x = enemy.x + move_x
     elseif move_y ~= 0 then
-        enemy.y = enemy.y + move_y
+        next_y = enemy.y + move_y
+    end
+    
+    
+    if move_x ~= 0 and not isColliding(next_x, enemy.y) then
+        enemy.x = next_x
+    elseif move_x == 0 and move_y ~= 0 and not isColliding(enemy.x, next_y) then
+        enemy.y = next_y
     end
 end
 function doDamage(amount)
@@ -311,15 +366,24 @@ function love.load()
     love.mouse.setVisible(false)
     love.window.setTitle("Project : Rebirth")
     -- FONCTIONS --
-    function love.drawBackground()
-        love.graphics.setLineWidth(2)
-        for i = 2, MAP_WIDTH * TILE_SIZE, TILE_SIZE do
-            for j = 2, MAP_HEIGHT * TILE_SIZE, TILE_SIZE do
-                love.graphics.setColor(0.549, 0.063, 0.027)
-                love.graphics.rectangle("line", i, j, TILE_SIZE - 2, TILE_SIZE - 2, 4, 4)
+function love.drawBackground()
+    love.graphics.setLineWidth(2)
+    for y = 1, GAME_MAP_H_TILES do
+        for x = 1, GAME_MAP_W_TILES do
+            local tile_type = game_map[y][x]
+            local px = (x - 1) * TILE_SIZE
+            local py = (y - 1) * TILE_SIZE
+            
+            if tile_type == TILE_TYPES.WALL then
+                love.graphics.setColor(0.3, 0.3, 0.3) -- Couleur sombre pour les murs
+                love.graphics.rectangle("fill", px, py, TILE_SIZE, TILE_SIZE)
+            else
+                love.graphics.setColor(0.549, 0.063, 0.027) -- Votre couleur de grille habituelle
+                love.graphics.rectangle("line", px + 2, py + 2, TILE_SIZE - 4, TILE_SIZE - 4)
             end
         end
     end
+end
     function love.UI()
         love.graphics.setColor(0.243, 0.027, 0.012)
         love.graphics.rectangle("fill", 0, TILE_SIZE*10, TILE_SIZE*MAP_WIDTH, TILE_SIZE*MAP_HEIGHT)
@@ -371,7 +435,8 @@ function love.load()
         love.graphics.rectangle("fill", player.x+1, player.y+1, player.w, player.h, 4,4)
     end
 
-
+    math.randomseed(os.time())
+    generateMap()
     -- AJOUT D'ENNEMIES ICI
     table.insert( ennemies, createEnemy(1, 1, "MonsterA")) 
     table.insert( ennemies, createEnemy(10, 1, "MonsterA"))
