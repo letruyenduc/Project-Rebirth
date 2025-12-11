@@ -285,6 +285,26 @@ function updateProjectiles(dt)
         end
     end
 end
+function drawAimIndicator()
+    local target_x = player.x
+    local target_y = player.y
+    local color = {0.0, 1.0, 0.0, 0.5}
+    
+    if player.aimDirection == "UP" then
+        target_y = player.y - TILE_SIZE
+    elseif player.aimDirection == "DOWN" then
+        target_y = player.y + TILE_SIZE
+    elseif player.aimDirection == "LEFT" then
+        target_x = player.x - TILE_SIZE
+    elseif player.aimDirection == "RIGHT" then
+        target_x = player.x + TILE_SIZE
+    end
+    
+    love.graphics.setColor(color)
+    love.graphics.setLineWidth(4) 
+    
+    love.graphics.rectangle("line", target_x, target_y, TILE_SIZE, TILE_SIZE)
+end
 function love.load()
     
 
@@ -399,6 +419,7 @@ function love.draw()
         love.graphics.rectangle("fill", proj.x, proj.y, proj.w, proj.h, 2, 2)
     end
     love.drawPlayer()
+    drawAimIndicator()
     love.showFPS()
     love.gameFrame()
     love.die()
