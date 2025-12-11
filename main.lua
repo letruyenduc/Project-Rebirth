@@ -36,6 +36,18 @@ local hp = {
 local mp = {
     quantity = TILE_SIZE*4
 }
+local walls = {
+    {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+    {1,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+    {1,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+    {1,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+    {1,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+    {1,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+    {1,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+    {1,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+    {1,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+    {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
+}
 local ennemies = {}
 function playerMovement(dt)
     moveTimer = moveTimer - dt
@@ -154,6 +166,11 @@ function love.quit()
     end
 end
 
+function drawWalls(walls)
+    for i=0, #walls do
+        print(walls)
+    end
+end
 function love.load()
     
 
@@ -267,6 +284,7 @@ function love.draw()
     love.UI()
     love.userHP()
     love.userMP()
+    drawWalls(walls)
     for _, enemy in ipairs(ennemies) do
         love.drawEnemy(enemy)
     end
