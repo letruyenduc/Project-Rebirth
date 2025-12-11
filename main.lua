@@ -27,9 +27,10 @@ local player = {
     x = 0,
     y = 0,
     w = 64,
-    h = 64
-
+    h = 64,
+    aimDirection = "RIGHT"
 }
+
 local hp = {
     quantity = TILE_SIZE*4
 }
@@ -37,6 +38,25 @@ local mp = {
     quantity = TILE_SIZE*4
 }
 local ennemies = {}
+local projectiles = {}
+local SPELL_DEFINITIONS = {
+    Fireball = {
+        damage = 30,
+        speed_multiplier = 7, -- Vitesse: TILE_SIZE * 7
+        lifetime = 1.5,
+        color = {1.0, 0.4, 0.0}, -- Orange/Rouge
+        size_multiplier = 0.5,   -- Taille: TILE_SIZE * 0.5
+    },
+    
+    IceShard = {
+        damage = 15,
+        speed_multiplier = 10,
+        lifetime = 0.8,
+        color = {0.2, 0.8, 1.0}, -- Bleu clair
+        size_multiplier = 0.3,
+    },
+    
+}
 function playerMovement(dt)
     moveTimer = moveTimer - dt
     if moveTimer <= 0 then
@@ -117,43 +137,124 @@ function moveEnemyTowardsPlayer(enemy, player)
         enemy.y = enemy.y + move_y
     end
 end
-function doDamage(amount, dt)
-    damageTimer = damageTimer - dt
-    if damageTimer <= 0 then
-        local isPressed = false
-        if hp.quantity > 0 then
-            hp.quantity = hp.quantity - amount
-            damageTimer = 0.1
-            isPressed = true
-        end
-        if isPressed then
-            damageTimer = DAMAGE_DELAY
-        end
+function doDamage(amount)
+    if hp.quantity > 0 then
+        hp.quantity = hp.quantity - amount
     end
 end
 
 -- FONCTIONNEL
-function love.eSpell(mana, dt)
+function eSpell(mana, dt, SPELL_TO_CAST)
     E_manaTimer = E_manaTimer - dt
     if love.keyboard.isDown("e") and E_manaTimer <= 0 then
-        local isPressed = false
-        if mp.quantity > 0 + mana then
+        
+        if mp.quantity >= mana then 
             mp.quantity = mp.quantity - mana
-            E_manaTimer = 1.0
-            isPressed = true
-        end
-        if isPressed then
-            E_manaTimer = MANA_DELAY
+            E_manaTimer = MANA_DELAY 
+
+            local new_proj = createProjectile(SPELL_TO_CAST, player.x, player.y, player.aimDirection)
+            
+            if new_proj then
+                table.insert(projectiles, new_proj)
+            end
         end
     end
 end
+function aSpell(mana, dt, SPELL_TO_CAST)
+    E_manaTimer = E_manaTimer - dt
+    if love.keyboard.isDown("a") and E_manaTimer <= 0 then
+        
+        if mp.quantity >= mana then 
+            mp.quantity = mp.quantity - mana
+            E_manaTimer = MANA_DELAY 
 
+            local new_proj = createProjectile(SPELL_TO_CAST, player.x, player.y, player.aimDirection)
+            
+            if new_proj then
+                table.insert(projectiles, new_proj)
+            end
+        end
+    end
+end
+function checkAimDirection()
+    if love.keyboard.isDown("up") then
+        player.aimDirection="UP"    
+    elseif love.keyboard.isDown("down") then
+        player.aimDirection="DOWN"
+    elseif love.keyboard.isDown("right") then
+        player.aimDirection = "RIGHT"
+    elseif love.keyboard.isDown("left") then
+        player.aimDirection = "LEFT"
+    end 
+end
+
+function createProjectile(spell_name, x_start, y_start, direction)
+    local def = SPELL_DEFINITIONS[spell_name]
+    if not def then return nil end
+
+    local speed_x, speed_y = 0, 0
+    local speed = TILE_SIZE * def.speed_multiplier
+    local size = TILE_SIZE * def.size_multiplier
+
+    if direction == "UP" then speed_y = -speed
+    elseif direction == "DOWN" then speed_y = speed
+    elseif direction == "RIGHT" then speed_x = speed
+    elseif direction == "LEFT" then speed_x = -speed
+    end
+
+    local new_projectile = {
+        x = x_start + (TILE_SIZE - size) / 2,
+        y = y_start + (TILE_SIZE - size) / 2,
+        w = size,
+        h = size,
+        
+        speed_x = speed_x,
+        speed_y = speed_y,
+        damage = def.damage,
+        color = def.color,
+        lifetime = def.lifetime,
+    }
+    return new_projectile
+end
 function love.quit()
     if love.keyboard.isDown("escape") then
         love.event.quit()
     end
 end
+function updateProjectiles(dt)
+    for i = #projectiles, 1, -1 do
+        local proj = projectiles[i]
 
+        proj.x = proj.x + proj.speed_x * dt
+        proj.y = proj.y + proj.speed_y * dt
+        proj.lifetime = proj.lifetime - dt
+
+        local is_dead = false
+
+        if proj.lifetime <= 0 then
+            is_dead = true
+        end
+        
+        for j = #ennemies, 1, -1 do
+            local enemy = ennemies[j]
+            
+            local collision = proj.x < enemy.x + enemy.w and
+                              proj.x + proj.w > enemy.x and
+                              proj.y < enemy.y + enemy.h and
+                              proj.y + proj.h > enemy.y
+
+            if collision then
+                enemy.hp = enemy.hp - proj.damage -- Appliquer les dégâts
+                is_dead = true                   -- Le projectile disparaît
+                break                            -- Sortir de la boucle des ennemis
+            end
+        end
+
+        if is_dead then
+            table.remove(projectiles, i)
+        end
+    end
+end
 function love.load()
     
 
@@ -245,16 +346,20 @@ end
 function love.update(dt)
     damageTimer = math.max(0, damageTimer - dt)
     E_manaTimer = math.max(0, E_manaTimer - dt)
-
+    checkAimDirection()
+    updateProjectiles(dt)
+    eSpell(10, dt, "Fireball")
+    aSpell(10, dt, "IceShard")
     updateEnemy(dt)
     playerMovement(dt)
+
     love.quit()
     
     for _, enemy in ipairs(ennemies) do
         if player.x == enemy.x and player.y == enemy.y then
             
             if damageTimer <= 0 then
-                doDamage(enemy.damage, dt) 
+                doDamage(enemy.damage) 
                 damageTimer = DAMAGE_DELAY 
             end
         end
@@ -269,6 +374,10 @@ function love.draw()
     love.userMP()
     for _, enemy in ipairs(ennemies) do
         love.drawEnemy(enemy)
+    end
+    for _, proj in ipairs(projectiles) do
+        love.graphics.setColor(proj.color)
+        love.graphics.rectangle("fill", proj.x, proj.y, proj.w, proj.h, 2, 2)
     end
     love.drawPlayer()
     love.showFPS()
