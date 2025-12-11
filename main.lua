@@ -42,10 +42,10 @@ local projectiles = {}
 local SPELL_DEFINITIONS = {
     Fireball = {
         damage = 30,
-        speed_multiplier = 7, -- Vitesse: TILE_SIZE * 7
+        speed_multiplier = 7,
         lifetime = 1.5,
-        color = {1.0, 0.4, 0.0}, -- Orange/Rouge
-        size_multiplier = 0.5,   -- Taille: TILE_SIZE * 0.5
+        color = {1.0, 0.4, 0.0},
+        size_multiplier = 0.5,
     },
     
     IceShard = {
@@ -55,7 +55,18 @@ local SPELL_DEFINITIONS = {
         color = {0.2, 0.8, 1.0}, -- Bleu clair
         size_multiplier = 0.3,
     },
-    
+}
+local ENNEMIES_DEFINITIONS = {
+    MonsterA = {
+        max_hp = 30,
+        damage = 10,
+        color = {1.0, 0.2, 0.2}, -- Rouge Vif
+    },
+    MonsterB = {
+        max_hp = 50,
+        damage = 15,
+        color = {0.2, 0.8, 0.2}, -- Vert Vif
+    }
 }
 function playerMovement(dt)
     moveTimer = moveTimer - dt
@@ -90,6 +101,25 @@ function playerMovement(dt)
         end
     end
     
+end
+function createEnemy(x_tile, y_tile, enemy_type)
+    local def = ENNEMIES_DEFINITIONS[enemy_type]
+    if not def then 
+        print("Erreur: Type d'ennemi inconnu: " .. enemy_type)
+        return nil 
+    end
+
+    local new_enemy = {
+        x = x_tile * TILE_SIZE,
+        y = y_tile * TILE_SIZE,
+        w = TILE_SIZE,
+        h = TILE_SIZE,
+        
+        hp = def.max_hp,
+        damage = def.damage,
+        color = def.color,
+    }
+    return new_enemy
 end
 -- LOGIQUE INTERACTION ENNEMIES
 function updateEnemy(dt)
@@ -320,23 +350,12 @@ function love.load()
         love.graphics.setColor(0.549, 0.063, 0.027)
         love.graphics.rectangle("fill", player.x+1, player.y+1, player.w, player.h, 4,4)
     end
-    function love.createEnemy(x_tile, y_tile)
-        local new_enemy = {
-            x = x_tile * TILE_SIZE,
-            y = y_tile * TILE_SIZE,
-            w = TILE_SIZE,
-            h = TILE_SIZE,
-            
-            hp = 30,
-            damage = 10,
-            color = {1, 1, 0} -- Couleur jaune
-        }
-        return new_enemy
-    end
+
 
     -- AJOUT D'ENNEMIES ICI
-    table.insert( ennemies, love.createEnemy(1,1))
-    table.insert( ennemies, love.createEnemy(10,1))
+    table.insert( ennemies, createEnemy(1, 1, "MonsterA")) 
+    table.insert( ennemies, createEnemy(10, 1, "MonsterA"))
+    table.insert( ennemies, createEnemy(5, 5, "MonsterB")) 
     -- FIN D'AJOUT
     function love.drawEnemy(enemy)
         love.graphics.setColor(enemy.color)
