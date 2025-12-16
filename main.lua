@@ -53,7 +53,7 @@ end
 function love.draw()
     if State.game.state.ended then
         love.graphics.clear(0, 0, 0, 0)
-        -- TODO: Dessiner l'écran "Game Over" ici.
+        -- TODO: Dessiner l'écran "Game Over" ici. A ajouter dans game_render.lua
         return
     end
     Render.drawSidePanel()

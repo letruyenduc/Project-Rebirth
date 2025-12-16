@@ -124,5 +124,7 @@ function Render.drawGameFrame()
     love.graphics.setLineWidth(10)
     love.graphics.rectangle("line", 0, 0, love.graphics.getWidth() - 2, love.graphics.getHeight() - 2, 10, 10, TILE_SIZE)
 end
-
+-- TODO : Dessiner l'écran de fin, l'écran sera completement noir lorsque le personnage meurt.
+--------  Faire un menu
+-- TODO: Dans game_logic.lua ajouter une fonction permettant de naviguer entre les boutons
 return Render

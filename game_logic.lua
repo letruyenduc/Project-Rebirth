@@ -230,8 +230,6 @@ function Logic.updateEnemy(dt)
     end
 end
 
--- Dans game_logic.lua
-
 function Logic.moveEnemyTowardsPlayer(enemy, player)
     local dx = player.x - enemy.x
     local dy = player.y - enemy.y
@@ -239,6 +237,7 @@ function Logic.moveEnemyTowardsPlayer(enemy, player)
     local move_x = 0
     local move_y = 0
 
+    -- TODO : Ajouter un algorithme de recherche
     if dx ~= 0 then
         move_x = (dx > 0 and Data.TILE_SIZE) or (dx < 0 and -Data.TILE_SIZE)
     end
@@ -305,4 +304,8 @@ function Logic.generateMap()
     game_map[start_y][start_x] = Data.TILE_TYPES.GROUND
 end
 
+
+-- TODO : Fonction `regenMana(dt)` pour regénérer le mana de manière passive
+-- TODO : Fonction closeAttack(direction) pour attaquer au corps à corps, à ajouter dans le updatePlayer(dt)
+-- TODO : Modifier la fonction generateMap() et créer des preset de map.
 return Logic
