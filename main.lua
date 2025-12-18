@@ -22,11 +22,11 @@ function love.load()
 end
 
 function love.update(dt)
-    if State.game.state.ended then return end
 
     State.damageTimer = math.max(0, State.damageTimer - dt)
     State.eManaTimer = math.max(0, State.eManaTimer - dt)
 
+    Logic.regenMana(dt)
     Logic.checkAimDirection()
     Logic.checkQuit() 
 
@@ -37,6 +37,7 @@ function love.update(dt)
     Logic.castSpell("e", 10, dt, "Fireball") 
     Logic.castSpell("a", 10, dt, "IceShard")
     
+    Logic.checkActions(dt)
     for _, enemy in ipairs(State.ennemies) do
         if State.player.x == enemy.x and State.player.y == enemy.y then
             if State.damageTimer <= 0 then
@@ -45,23 +46,25 @@ function love.update(dt)
             end
         end
     end
-    
+    if State.game.state.ended then
+        Logic.updateDeathMenu(dt)
+        return
+    end
     Logic.checkDie() 
 end
 
 
 function love.draw()
-    if State.game.state.ended then
-        love.graphics.clear(0, 0, 0, 0)
-        -- TODO: Dessiner l'écran "Game Over" ici. A ajouter dans game_render.lua
-        return
-    end
-    Render.drawSidePanel()
+
     Render.drawBackground()
     Render.drawEntities()
     Render.drawAimIndicator()
     
     Render.drawUI()
     Render.drawGameFrame()
+    Render.drawSidePanel()
     Render.drawFPS()
+
+
+    Render.drawDeathMenu()
 end

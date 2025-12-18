@@ -50,8 +50,10 @@ function Render.drawAimIndicator()
     local target_x = player.x
     local target_y = player.y
     
-    local color = {0.0, 1.0, 0.0, 0.5} -- Vert semi-transparent
-    
+    local color = {0.0, 1.0, 0.0, 0.5} -- Vert par défaut
+    if love.keyboard.isDown("space") then
+        color = {1.0, 0.0, 0.0, 0.8} -- Rouge quand on attaque
+    end
     if player.aimDirection == "UP" then
         target_y = player.y - TILE_SIZE
     elseif player.aimDirection == "DOWN" then
@@ -124,7 +126,27 @@ function Render.drawGameFrame()
     love.graphics.setLineWidth(10)
     love.graphics.rectangle("line", 0, 0, love.graphics.getWidth() - 2, love.graphics.getHeight() - 2, 10, 10, TILE_SIZE)
 end
--- TODO : Dessiner l'écran de fin, l'écran sera completement noir lorsque le personnage meurt.
---------  Faire un menu
--- TODO: Dans game_logic.lua ajouter une fonction permettant de naviguer entre les boutons
+function Render.drawDeathMenu()
+    if not State.game.state.ended then return end
+
+    local sw = love.graphics.getWidth()
+    local sh = love.graphics.getHeight()
+
+    love.graphics.setColor(0, 0, 0, 0.7)
+    love.graphics.rectangle("fill", 0, 0, sw, sh)
+
+    love.graphics.setColor(1, 0, 0)
+    love.graphics.printf("GAME OVER", 0, sh/2 - 100, sw, "center")
+
+    for i, option in ipairs(State.menu.options) do
+        if i == State.menu.selected then
+            love.graphics.setColor(1, 1, 1) -- Blanc pour l'option choisie
+            love.graphics.print("> " .. option, sw/2 - 60, sh/2 + (i * 40))
+        else
+            love.graphics.setColor(0.5, 0.5, 0.5) -- Gris pour les autres
+            love.graphics.print("  " .. option, sw/2 - 60, sh/2 + (i * 40))
+        end
+    end
+end
+
 return Render
